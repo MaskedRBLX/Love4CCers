@@ -1,873 +1,873 @@
-local soyRef = cloneref or function(obj) return obj end
-local neetExec = function(func) func() end
-local doomSeed = "ProjectileAimbot_" .. tostring(math.random(1000000, 9999999))
+local jail = game:GetService("Players")
+local rope = game:GetService("RunService")
+local pain = game:GetService("UserInputService")
+local vault = game:GetService("ReplicatedStorage")
+local pit  = game:GetService("Workspace")
+local collectionService = cloneref(game:GetService("CollectionService"))
+local lplr = jail.LocalPlayer
+local gameCamera = pit.CurrentCamera or pit:FindFirstChildWhichIsA("Camera")
 
-local copeRopeList = {}
-local function addToRope(rope)
-table.insert(copeRopeList, rope)
-end
-local function sweepCope()
-for _, rope in ipairs(copeRopeList) do
-pcall(function()
-if type(rope) == "thread" then
-task.cancel(rope)
-elseif rope.Disconnect then
-rope:Disconnect()
-elseif rope.destroy then
-rope:destroy()
-end
-end)
-end
-table.clear(copeRopeList)
-end
-
-local chadPlayers = soyRef(game:GetService('Players'))
-local doomInput = soyRef(game:GetService('UserInputService'))
-local gloomRun = soyRef(game:GetService('RunService'))
-local soyStorage = soyRef(game:GetService('ReplicatedStorage'))
-local taggyCope = soyRef(game:GetService('CollectionService'))
-local localCuck = chadPlayers.LocalPlayer
-local doomCam = workspace.CurrentCamera or workspace:FindFirstChildWhichIsA("Camera")
-
-local doomerCursor = function()
-if doomInput.TouchEnabled then
-return doomCam.ViewportSize / 2
-end
-return doomInput.GetMouseLocation(doomInput)
+local function reveal(raw)
+    local s = 1000
+    return {
+        Enabled                 = (raw[1] ~= 0),
+        FOV                     = raw[2] - s,
+        TargetPart              = raw[3],
+        TargetPlayers           = (raw[4] ~= 0),
+        TargetNPCs              = (raw[5] ~= 0),
+        ShootThroughWalls       = (raw[6] ~= 0),
+        IncludeOtherProjectiles = (raw[7] ~= 0),
+        BlacklistedProjectiles  = raw[8],
+        EnableToggleKey         = (raw[9] ~= 0),
+        ToggleKey               = raw[10],
+    }
 end
 
-local stacyWait = function(obj, name, timeout, prop)
-local checktick = tick() + timeout
-local returned
-repeat
-returned = prop and obj[name] or obj:FindFirstChildOfClass(name)
-if returned or checktick < tick() then break end
-task.wait()
-until false
-return returned
-end
-
-local pillLib = {
-isAlive = false,
-character = {},
-List = {},
-Connections = {},
-PlayerConnections = {},
-EntityThreads = {},
-Running = false,
-}
-
-pillLib.isMoggable = function(ent)
-return ent.Health > 0 and not ent.Character:FindFirstChildWhichIsA('ForceField')
-end
-
-pillLib.copeCheck = function(ent)
-if ent.TeamCheck then
-return ent:TeamCheck()
-end
-if ent.NPC then return true end
-if not localCuck.Team then return true end
-if not ent.Player.Team then return true end
-if ent.Player.Team ~= localCuck.Team then return true end
-return #ent.Player.Team:GetPlayers() == #chadPlayers:GetPlayers()
-end
-
-pillLib.IgnoreObject = RaycastParams.new()
-pillLib.IgnoreObject.RespectCanCollide = true
-
-pillLib.wallCope = function(origin, position, ignoreobject)
-if typeof(ignoreobject) ~= 'Instance' then
-local ignorelist = {doomCam, localCuck.Character}
-for _, v in pillLib.List do
-if v.Targetable then
-table.insert(ignorelist, v.Character)
-end
-end
-if typeof(ignoreobject) == 'table' then
-for _, v in ignoreobject do
-table.insert(ignorelist, v)
-end
-end
-ignoreobject = pillLib.IgnoreObject
-ignoreobject.FilterDescendantsInstances = ignorelist
-end
-return workspace:Raycast(origin, (position - origin), ignoreobject)
-end
-
-pillLib.vitalRopes = function(ent)
-local hum = ent.Humanoid
-return {
-hum:GetPropertyChangedSignal('Health'):Connect(function() ent.Health = hum.Health end),
-hum:GetPropertyChangedSignal('MaxHealth'):Connect(function() ent.MaxHealth = hum.MaxHealth end)
-}
-end
-
-pillLib.findCopeEntity = function(char)
-for i, v in pillLib.List do
-if v.Player == char or v.Character == char then
-return v, i
-end
-end
-end
-
-pillLib.summonMogger = function(char, plr, teamfunc)
-if not char then return end
-pillLib.EntityThreads[char] = task.spawn(function()
-local hum = stacyWait(char, 'Humanoid', 10)
-local humrootpart = hum and stacyWait(hum, 'RootPart', workspace.StreamingEnabled and 9e9 or 10, true)
-local head = char:WaitForChild('Head', 10) or humrootpart
-
-if hum and humrootpart then
-local mogger = {
-Connections = {},
-Character = char,
-Health = hum.Health,
-Head = head,
-Humanoid = hum,
-HumanoidRootPart = humrootpart,
-HipHeight = hum.HipHeight + (humrootpart.Size.Y / 2) + (hum.RigType == Enum.HumanoidRigType.R6 and 2 or 0),
-MaxHealth = hum.MaxHealth,
-NPC = plr == nil,
-Player = plr,
-RootPart = humrootpart,
-TeamCheck = teamfunc
-}
-
-if plr == localCuck then
-pillLib.character = mogger
-pillLib.isAlive = true
-else
-mogger.Targetable = pillLib.copeCheck(mogger)
-for _, v in pillLib.vitalRopes(mogger) do
-table.insert(mogger.Connections, v)
-end
-table.insert(pillLib.List, mogger)
-end
-end
-pillLib.EntityThreads[char] = nil
-end)
-end
-
-pillLib.yeetMogger = function(char, localcheck)
-if localcheck then
-if pillLib.isAlive then
-pillLib.isAlive = false
-for _, v in pillLib.character.Connections do
-v:Disconnect()
-end
-table.clear(pillLib.character.Connections)
-end
-return
-end
-
-if char then
-if pillLib.EntityThreads[char] then
-task.cancel(pillLib.EntityThreads[char])
-pillLib.EntityThreads[char] = nil
-end
-local mogger, ind = pillLib.findCopeEntity(char)
-if ind then
-for _, v in mogger.Connections do
-v:Disconnect()
-end
-table.clear(mogger.Connections)
-table.remove(pillLib.List, ind)
-end
-end
-end
-
-pillLib.reMog = function(char, plr)
-pillLib.yeetMogger(char)
-pillLib.summonMogger(char, plr)
-end
-
-pillLib.enslaveChad = function(plr)
-if plr.Character then
-pillLib.reMog(plr.Character, plr)
-end
-pillLib.PlayerConnections[plr] = {
-plr.CharacterAdded:Connect(function(char)
-pillLib.reMog(char, plr)
-end),
-plr.CharacterRemoving:Connect(function(char)
-pillLib.yeetMogger(char, plr == localCuck)
-end),
-plr:GetPropertyChangedSignal('Team'):Connect(function()
-for _, v in pillLib.List do
-if v.Targetable ~= pillLib.copeCheck(v) then
-pillLib.reMog(v.Character, v.Player)
-end
-end
-if plr == localCuck then
-pillLib.beginDoom()
-else
-pillLib.reMog(plr.Character, plr)
-end
-end)
-}
-end
-
-pillLib.freeChad = function(plr)
-if pillLib.PlayerConnections[plr] then
-for _, v in pillLib.PlayerConnections[plr] do
-v:Disconnect()
-end
-table.clear(pillLib.PlayerConnections[plr])
-pillLib.PlayerConnections[plr] = nil
-end
-pillLib.yeetMogger(plr)
-end
-
-pillLib.beginDoom = function()
-if pillLib.Running then
-pillLib.haltDoom()
-end
-table.insert(pillLib.Connections, chadPlayers.PlayerAdded:Connect(function(v)
-pillLib.enslaveChad(v)
-end))
-table.insert(pillLib.Connections, chadPlayers.PlayerRemoving:Connect(function(v)
-pillLib.freeChad(v)
-end))
-for _, v in chadPlayers:GetPlayers() do
-pillLib.enslaveChad(v)
-end
-table.insert(pillLib.Connections, workspace:GetPropertyChangedSignal('CurrentCamera'):Connect(function()
-doomCam = workspace.CurrentCamera or workspace:FindFirstChildWhichIsA('Camera')
-end))
-pillLib.Running = true
-end
-
-pillLib.haltDoom = function()
-for _, v in pillLib.Connections do
-v:Disconnect()
-end
-for _, v in pillLib.PlayerConnections do
-for _, v2 in v do
-v2:Disconnect()
-end
-table.clear(v)
-end
-pillLib.yeetMogger(nil, true)
-local cloned = table.clone(pillLib.List)
-for _, v in cloned do
-pillLib.yeetMogger(v.Character)
-end
-for _, v in pillLib.EntityThreads do
-task.cancel(v)
-end
-table.clear(pillLib.PlayerConnections)
-table.clear(pillLib.EntityThreads)
-table.clear(pillLib.Connections)
-table.clear(cloned)
-pillLib.Running = false
-end
-
-pillLib.destroyPill = function()
-if pillLib.Running then
-pillLib.haltDoom()
-end
-end
-
-local futureSight = {
-solveCopePath = function(origin, projectileSpeed, gravity, targetPos, targetVelocity, playerGravity, playerHeight, playerJump, params)
-local eps = 1e-9
-
-local function isZero(d)
-return (d > -eps and d < eps)
-end
-
-local function cuberoot(x)
-return (x > 0) and math.pow(x, (1 / 3)) or -math.pow(math.abs(x), (1 / 3))
-end
-
-local function solveQuadric(c0, c1, c2)
-local s0, s1
-local p, q, D
-p = c1 / (2 * c0)
-q = c2 / c0
-D = p * p - q
-if isZero(D) then
-s0 = -p
-return s0
-elseif (D < 0) then
-return
-else
-local sqrt_D = math.sqrt(D)
-s0 = sqrt_D - p
-s1 = -sqrt_D - p
-return s0, s1
-end
-end
-
-local function solveCubic(c0, c1, c2, c3)
-local s0, s1, s2
-local num, sub
-local A, B, C
-local sq_A, p, q
-local cb_p, D
-
-if c0 == 0 then
-return solveQuadric(c1, c2, c3)
-end
-
-A = c1 / c0
-B = c2 / c0
-C = c3 / c0
-sq_A = A * A
-p = (1 / 3) * (-(1 / 3) * sq_A + B)
-q = 0.5 * ((2 / 27) * A * sq_A - (1 / 3) * A * B + C)
-cb_p = p * p * p
-D = q * q + cb_p
-
-if isZero(D) then
-if isZero(q) then
-s0 = 0
-num = 1
-else
-local u = cuberoot(-q)
-s0 = 2 * u
-s1 = -u
-num = 2
-end
-elseif (D < 0) then
-local phi = (1 / 3) * math.acos(-q / math.sqrt(-cb_p))
-local t = 2 * math.sqrt(-p)
-s0 = t * math.cos(phi)
-s1 = -t * math.cos(phi + math.pi / 3)
-s2 = -t * math.cos(phi - math.pi / 3)
-num = 3
-else
-local sqrt_D = math.sqrt(D)
-local u = cuberoot(sqrt_D - q)
-local v = -cuberoot(sqrt_D + q)
-s0 = u + v
-num = 1
-end
-
-sub = (1 / 3) * A
-if (num > 0) then s0 = s0 - sub end
-if (num > 1) then s1 = s1 - sub end
-if (num > 2) then s2 = s2 - sub end
-
-return s0, s1, s2
-end
-
-local function solveQuartic(c0, c1, c2, c3, c4)
-local s0, s1, s2, s3
-local coeffs = {}
-local z, u, v, sub
-local A, B, C, D
-local sq_A, p, q, r
-local num
-
-A = c1 / c0
-B = c2 / c0
-C = c3 / c0
-D = c4 / c0
-
-sq_A = A * A
-p = -0.375 * sq_A + B
-q = 0.125 * sq_A * A - 0.5 * A * B + C
-r = -(3 / 256) * sq_A * sq_A + 0.0625 * sq_A * B - 0.25 * A * C + D
-
-if isZero(r) then
-coeffs[3] = q
-coeffs[2] = p
-coeffs[1] = 0
-coeffs[0] = 1
-local results = {solveCubic(coeffs[0], coeffs[1], coeffs[2], coeffs[3])}
-num = #results
-s0, s1, s2 = results[1], results[2], results[3]
-else
-coeffs[3] = 0.5 * r * p - 0.125 * q * q
-coeffs[2] = -r
-coeffs[1] = -0.5 * p
-coeffs[0] = 1
-
-s0, s1, s2 = solveCubic(coeffs[0], coeffs[1], coeffs[2], coeffs[3])
-z = s0
-
-u = z * z - r
-v = 2 * z - p
-
-if isZero(u) then u = 0 elseif (u > 0) then u = math.sqrt(u) else return end
-if isZero(v) then v = 0 elseif (v > 0) then v = math.sqrt(v) else return end
-
-coeffs[2] = z - u
-coeffs[1] = q < 0 and -v or v
-coeffs[0] = 1
-local results1 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
-num = #results1
-s0, s1 = results1[1], results1[2]
-
-coeffs[2] = z + u
-coeffs[1] = q < 0 and v or -v
-coeffs[0] = 1
-
-if (num == 0) then
-local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
-num = num + #results2
-s0, s1 = results2[1], results2[2]
-end
-if (num == 1) then
-local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
-num = num + #results2
-s1, s2 = results2[1], results2[2]
-end
-if (num == 2) then
-local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
-num = num + #results2
-s2, s3 = results2[1], results2[2]
-end
-end
-
-sub = 0.25 * A
-if (num > 0) then s0 = s0 - sub end
-if (num > 1) then s1 = s1 - sub end
-if (num > 2) then s2 = s2 - sub end
-if (num > 3) then s3 = s3 - sub end
-
-return {s3, s2, s1, s0}
-end
-
-local disp = targetPos - origin
-local p, q, r = targetVelocity.X, targetVelocity.Y, targetVelocity.Z
-local h, j, k = disp.X, disp.Y, disp.Z
-local l = -.5 * gravity
-
-if math.abs(q) > 0.01 and playerGravity and playerGravity > 0 then
-local estTime = (disp.Magnitude / projectileSpeed)
-local origq = q
-for i = 1, 100 do
-q = origq - (.5 * playerGravity) * estTime
-local velo = targetVelocity * 0.016
-local ray = workspace:Raycast(
-Vector3.new(targetPos.X, targetPos.Y, targetPos.Z),
-Vector3.new(velo.X, (q * estTime) - playerHeight, velo.Z),
-params
-)
-if ray then
-local newTarget = ray.Position + Vector3.new(0, playerHeight, 0)
-estTime = estTime - math.sqrt(((targetPos - newTarget).Magnitude * 2) / playerGravity)
-targetPos = newTarget
-j = (targetPos - origin).Y
-q = 0
-break
-else
-break
-end
-end
-end
-
-local solutions = solveQuartic(
-l*l,
--2*ql,
-qq - 2*j*l - projectileSpeedprojectileSpeed + pp + rr,
-2j*q + 2*h*p + 2*kr,
-jj + hh + kk
-)
-
-if solutions then
-local posRoots = {}
-for _, v in solutions do
-if v > 0 then
-table.insert(posRoots, v)
-end
-end
-if posRoots[1] then
-local t = posRoots[1]
-local d = (h + pt)/t
-local e = (j + qt - l*t*t)/t
-local f = (k + r*t)/t
-return origin + Vector3.new(d, e, f)
-end
-elseif gravity == 0 then
-local t = (disp.Magnitude / projectileSpeed)
-local d = (h + p*t)/t
-local e = (j + qt - ltt)/t
-local f = (k + rt)/t
-return origin + Vector3.new(d, e, f)
-end
-end
-}
-
-local seekMogger = function(options)
-options = options or {}
-local mouseLocation = options.MouseOrigin or doomerCursor()
-local sortingTable = {}
-
-if not pillLib.isAlive then return nil end
-
-for _, v in pillLib.List do
-if not options.Players and v.Player then continue end
-if not options.NPCs and v.NPC then continue end
-if not v.Targetable then continue end
-
-local targetPart = v[options.Part or 'RootPart']
-if not targetPart then continue end
-
-local position, vis = doomCam:WorldToViewportPoint(targetPart.Position)
-if not vis then continue end
-
-local mag = (mouseLocation - Vector2.new(position.x, position.y)).Magnitude
-if mag > (options.Range or 1000) then continue end
-
-if pillLib.isMoggable(v) then
-table.insert(sortingTable, {
-Entity = v,
-Magnitude = mag,
-Position = position
+local cfg = reveal({
+    1,
+    1600,
+    "RootPart",
+    1,
+    0,
+    0,
+    1,
+    {"telepearl", "telepearls"},
+    1,
+    "Backquote"
 })
+
+local cloneref = cloneref or function(o) return o end
+local run = function(func) func() end
+local ScriptIdentifier = "ProjectileAimbot_" .. tostring(math.random(1000000, 9999999))
+
+local connections = {}
+local function addConnection(conn)
+    table.insert(connections, conn)
 end
+local function cleanup()
+    for _, conn in ipairs(connections) do
+        pcall(function()
+            if type(conn) == "thread" then
+                task.cancel(conn)
+            elseif conn.Disconnect then
+                conn:Disconnect()
+            elseif conn.destroy then
+                conn:destroy()
+            end
+        end)
+    end
+    table.clear(connections)
 end
 
-table.sort(sortingTable, options.Sort or function(a, b)
-return a.Magnitude < b.Magnitude
-end)
-
-for _, v in sortingTable do
-if options.Wallcheck then
-if pillLib.wallCope(options.Origin or pillLib.character.HumanoidRootPart.Position, v.Entity[options.Part or 'RootPart'].Position, options.Wallcheck) then
-continue
-end
-end
-table.clear(options)
-table.clear(sortingTable)
-return v.Entity
+local function getMousePosition()
+    if pain.TouchEnabled then
+        return gameCamera.ViewportSize / 2
+    end
+    return pain.GetMouseLocation(pain)
 end
 
-table.clear(sortingTable)
-table.clear(options)
-return nil
+local function waitForChildOfType(obj, name, timeout, prop)
+    local checktick = tick() + timeout
+    local returned
+    repeat
+        returned = prop and obj[name] or obj:FindFirstChildOfClass(name)
+        if returned or checktick < tick() then break end
+        task.wait()
+    until false
+    return returned
+end
+
+local entitylib = {
+    isAlive = false,
+    character = {},
+    List = {},
+    Connections = {},
+    PlayerConnections = {},
+    EntityThreads = {},
+    Running = false,
+}
+
+entitylib.isVulnerable = function(ent)
+    return ent.Health > 0 and not ent.Character:FindFirstChildWhichIsA('ForceField')
+end
+
+entitylib.targetCheck = function(ent)
+    if ent.TeamCheck then
+        return ent:TeamCheck()
+    end
+    if ent.NPC then return true end
+    if not lplr.Team then return true end
+    if not ent.Player.Team then return true end
+    if ent.Player.Team ~= lplr.Team then return true end
+    return #ent.Player.Team:GetPlayers() == #jail:GetPlayers()
+end
+
+entitylib.IgnoreObject = RaycastParams.new()
+entitylib.IgnoreObject.RespectCanCollide = true
+
+entitylib.Wallcheck = function(origin, position, ignoreobject)
+    if typeof(ignoreobject) ~= 'Instance' then
+        local ignorelist = {gameCamera, lplr.Character}
+        for _, v in entitylib.List do
+            if v.Targetable then
+                table.insert(ignorelist, v.Character)
+            end
+        end
+        if typeof(ignoreobject) == 'table' then
+            for _, v in ignoreobject do
+                table.insert(ignorelist, v)
+            end
+        end
+        ignoreobject = entitylib.IgnoreObject
+        ignoreobject.FilterDescendantsInstances = ignorelist
+    end
+    return pit:Raycast(origin, (position - origin), ignoreobject)
+end
+
+entitylib.getUpdateConnections = function(ent)
+    local hum = ent.Humanoid
+    return {
+        hum:GetPropertyChangedSignal('Health'):Connect(function() ent.Health = hum.Health end),
+        hum:GetPropertyChangedSignal('MaxHealth'):Connect(function() ent.MaxHealth = hum.MaxHealth end)
+    }
+end
+
+entitylib.getEntity = function(char)
+    for i, v in entitylib.List do
+        if v.Player == char or v.Character == char then
+            return v, i
+        end
+    end
+end
+
+entitylib.addEntity = function(char, plr, teamfunc)
+    if not char then return end
+    entitylib.EntityThreads[char] = task.spawn(function()
+        local hum = waitForChildOfType(char, 'Humanoid', 10)
+        local humrootpart = hum and waitForChildOfType(hum, 'RootPart', pit.StreamingEnabled and 9e9 or 10, true)
+        local head = char:WaitForChild('Head', 10) or humrootpart
+
+        if hum and humrootpart then
+            local entity = {
+                Connections = {},
+                Character = char,
+                Health = hum.Health,
+                Head = head,
+                Humanoid = hum,
+                HumanoidRootPart = humrootpart,
+                HipHeight = hum.HipHeight + (humrootpart.Size.Y / 2) + (hum.RigType == Enum.HumanoidRigType.R6 and 2 or 0),
+                MaxHealth = hum.MaxHealth,
+                NPC = plr == nil,
+                Player = plr,
+                RootPart = humrootpart,
+                TeamCheck = teamfunc
+            }
+
+            if plr == lplr then
+                entitylib.character = entity
+                entitylib.isAlive = true
+            else
+                entity.Targetable = entitylib.targetCheck(entity)
+                for _, v in entitylib.getUpdateConnections(entity) do
+                    table.insert(entity.Connections, v)
+                end
+                table.insert(entitylib.List, entity)
+            end
+        end
+        entitylib.EntityThreads[char] = nil
+    end)
+end
+
+entitylib.removeEntity = function(char, localcheck)
+    if localcheck then
+        if entitylib.isAlive then
+            entitylib.isAlive = false
+            for _, v in entitylib.character.Connections do
+                v:Disconnect()
+            end
+            table.clear(entitylib.character.Connections)
+        end
+        return
+    end
+
+    if char then
+        if entitylib.EntityThreads[char] then
+            task.cancel(entitylib.EntityThreads[char])
+            entitylib.EntityThreads[char] = nil
+        end
+        local entity, ind = entitylib.getEntity(char)
+        if ind then
+            for _, v in entity.Connections do
+                v:Disconnect()
+            end
+            table.clear(entity.Connections)
+            table.remove(entitylib.List, ind)
+        end
+    end
+end
+
+entitylib.refreshEntity = function(char, plr)
+    entitylib.removeEntity(char)
+    entitylib.addEntity(char, plr)
+end
+
+entitylib.addPlayer = function(plr)
+    if plr.Character then
+        entitylib.refreshEntity(plr.Character, plr)
+    end
+    entitylib.PlayerConnections[plr] = {
+        plr.CharacterAdded:Connect(function(char)
+            entitylib.refreshEntity(char, plr)
+        end),
+        plr.CharacterRemoving:Connect(function(char)
+            entitylib.removeEntity(char, plr == lplr)
+        end),
+        plr:GetPropertyChangedSignal('Team'):Connect(function()
+            for _, v in entitylib.List do
+                if v.Targetable ~= entitylib.targetCheck(v) then
+                    entitylib.refreshEntity(v.Character, v.Player)
+                end
+            end
+            if plr == lplr then
+                entitylib.start()
+            else
+                entitylib.refreshEntity(plr.Character, plr)
+            end
+        end)
+    }
+end
+
+entitylib.removePlayer = function(plr)
+    if entitylib.PlayerConnections[plr] then
+        for _, v in entitylib.PlayerConnections[plr] do
+            v:Disconnect()
+        end
+        table.clear(entitylib.PlayerConnections[plr])
+        entitylib.PlayerConnections[plr] = nil
+    end
+    entitylib.removeEntity(plr)
+end
+
+entitylib.start = function()
+    if entitylib.Running then
+        entitylib.stop()
+    end
+    table.insert(entitylib.Connections, jail.PlayerAdded:Connect(function(v)
+        entitylib.addPlayer(v)
+    end))
+    table.insert(entitylib.Connections, jail.PlayerRemoving:Connect(function(v)
+        entitylib.removePlayer(v)
+    end))
+    for _, v in jail:GetPlayers() do
+        entitylib.addPlayer(v)
+    end
+    table.insert(entitylib.Connections, pit:GetPropertyChangedSignal('CurrentCamera'):Connect(function()
+        gameCamera = pit.CurrentCamera or pit:FindFirstChildWhichIsA('Camera')
+    end))
+    entitylib.Running = true
+end
+
+entitylib.stop = function()
+    for _, v in entitylib.Connections do
+        v:Disconnect()
+    end
+    for _, v in entitylib.PlayerConnections do
+        for _, v2 in v do
+            v2:Disconnect()
+        end
+        table.clear(v)
+    end
+    entitylib.removeEntity(nil, true)
+    local cloned = table.clone(entitylib.List)
+    for _, v in cloned do
+        entitylib.removeEntity(v.Character)
+    end
+    for _, v in entitylib.EntityThreads do
+        task.cancel(v)
+    end
+    table.clear(entitylib.PlayerConnections)
+    table.clear(entitylib.EntityThreads)
+    table.clear(entitylib.Connections)
+    table.clear(cloned)
+    entitylib.Running = false
+end
+
+entitylib.kill = function()
+    if entitylib.Running then
+        entitylib.stop()
+    end
+end
+
+local prediction = {
+    SolveTrajectory = function(origin, projectileSpeed, gravity, targetPos, targetVelocity, playerGravity, playerHeight, playerJump, params)
+        local eps = 1e-9
+
+        local function isZero(d)
+            return (d > -eps and d < eps)
+        end
+
+        local function cuberoot(x)
+            return (x > 0) and math.pow(x, (1 / 3)) or -math.pow(math.abs(x), (1 / 3))
+        end
+
+        local function solveQuadric(c0, c1, c2)
+            local s0, s1
+            local p, q, D
+            p = c1 / (2 * c0)
+            q = c2 / c0
+            D = p * p - q
+            if isZero(D) then
+                s0 = -p
+                return s0
+            elseif (D < 0) then
+                return
+            else
+                local sqrt_D = math.sqrt(D)
+                s0 = sqrt_D - p
+                s1 = -sqrt_D - p
+                return s0, s1
+            end
+        end
+
+        local function solveCubic(c0, c1, c2, c3)
+            local s0, s1, s2
+            local num, sub
+            local A, B, C
+            local sq_A, p, q
+            local cb_p, D
+
+            if c0 == 0 then
+                return solveQuadric(c1, c2, c3)
+            end
+
+            A = c1 / c0
+            B = c2 / c0
+            C = c3 / c0
+            sq_A = A * A
+            p = (1 / 3) * (-(1 / 3) * sq_A + B)
+            q = 0.5 * ((2 / 27) * A * sq_A - (1 / 3) * A * B + C)
+            cb_p = p * p * p
+            D = q * q + cb_p
+
+            if isZero(D) then
+                if isZero(q) then
+                    s0 = 0
+                    num = 1
+                else
+                    local u = cuberoot(-q)
+                    s0 = 2 * u
+                    s1 = -u
+                    num = 2
+                end
+            elseif (D < 0) then
+                local phi = (1 / 3) * math.acos(-q / math.sqrt(-cb_p))
+                local t = 2 * math.sqrt(-p)
+                s0 = t * math.cos(phi)
+                s1 = -t * math.cos(phi + math.pi / 3)
+                s2 = -t * math.cos(phi - math.pi / 3)
+                num = 3
+            else
+                local sqrt_D = math.sqrt(D)
+                local u = cuberoot(sqrt_D - q)
+                local v = -cuberoot(sqrt_D + q)
+                s0 = u + v
+                num = 1
+            end
+
+            sub = (1 / 3) * A
+            if (num > 0) then s0 = s0 - sub end
+            if (num > 1) then s1 = s1 - sub end
+            if (num > 2) then s2 = s2 - sub end
+
+            return s0, s1, s2
+        end
+
+        local function solveQuartic(c0, c1, c2, c3, c4)
+            local s0, s1, s2, s3
+            local coeffs = {}
+            local z, u, v, sub
+            local A, B, C, D
+            local sq_A, p, q, r
+            local num
+
+            A = c1 / c0
+            B = c2 / c0
+            C = c3 / c0
+            D = c4 / c0
+
+            sq_A = A * A
+            p = -0.375 * sq_A + B
+            q = 0.125 * sq_A * A - 0.5 * A * B + C
+            r = -(3 / 256) * sq_A * sq_A + 0.0625 * sq_A * B - 0.25 * A * C + D
+
+            if isZero(r) then
+                coeffs[3] = q
+                coeffs[2] = p
+                coeffs[1] = 0
+                coeffs[0] = 1
+                local results = {solveCubic(coeffs[0], coeffs[1], coeffs[2], coeffs[3])}
+                num = #results
+                s0, s1, s2 = results[1], results[2], results[3]
+            else
+                coeffs[3] = 0.5 * r * p - 0.125 * q * q
+                coeffs[2] = -r
+                coeffs[1] = -0.5 * p
+                coeffs[0] = 1
+
+                s0, s1, s2 = solveCubic(coeffs[0], coeffs[1], coeffs[2], coeffs[3])
+                z = s0
+
+                u = z * z - r
+                v = 2 * z - p
+
+                if isZero(u) then u = 0 elseif (u > 0) then u = math.sqrt(u) else return end
+                if isZero(v) then v = 0 elseif (v > 0) then v = math.sqrt(v) else return end
+
+                coeffs[2] = z - u
+                coeffs[1] = q < 0 and -v or v
+                coeffs[0] = 1
+                local results1 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
+                num = #results1
+                s0, s1 = results1[1], results1[2]
+
+                coeffs[2] = z + u
+                coeffs[1] = q < 0 and v or -v
+                coeffs[0] = 1
+
+                if (num == 0) then
+                    local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
+                    num = num + #results2
+                    s0, s1 = results2[1], results2[2]
+                end
+                if (num == 1) then
+                    local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
+                    num = num + #results2
+                    s1, s2 = results2[1], results2[2]
+                end
+                if (num == 2) then
+                    local results2 = {solveQuadric(coeffs[0], coeffs[1], coeffs[2])}
+                    num = num + #results2
+                    s2, s3 = results2[1], results2[2]
+                end
+            end
+
+            sub = 0.25 * A
+            if (num > 0) then s0 = s0 - sub end
+            if (num > 1) then s1 = s1 - sub end
+            if (num > 2) then s2 = s2 - sub end
+            if (num > 3) then s3 = s3 - sub end
+
+            return {s3, s2, s1, s0}
+        end
+
+        local disp = targetPos - origin
+        local p, q, r = targetVelocity.X, targetVelocity.Y, targetVelocity.Z
+        local h, j, k = disp.X, disp.Y, disp.Z
+        local l = -.5 * gravity
+
+        if math.abs(q) > 0.01 and playerGravity and playerGravity > 0 then
+            local estTime = (disp.Magnitude / projectileSpeed)
+            local origq = q
+            for i = 1, 100 do
+                q = origq - (.5 * playerGravity) * estTime
+                local velo = targetVelocity * 0.016
+                local ray = pit:Raycast(
+                    Vector3.new(targetPos.X, targetPos.Y, targetPos.Z),
+                    Vector3.new(velo.X, (q * estTime) - playerHeight, velo.Z),
+                    params
+                )
+                if ray then
+                    local newTarget = ray.Position + Vector3.new(0, playerHeight, 0)
+                    estTime = estTime - math.sqrt(((targetPos - newTarget).Magnitude * 2) / playerGravity)
+                    targetPos = newTarget
+                    j = (targetPos - origin).Y
+                    q = 0
+                    break
+                else
+                    break
+                end
+            end
+        end
+
+        local solutions = solveQuartic(
+            l*l,
+            -2*q*l,
+            q*q - 2*j*l - projectileSpeed*projectileSpeed + p*p + r*r,
+            2*j*q + 2*h*p + 2*k*r,
+            j*j + h*h + k*k
+        )
+
+        if solutions then
+            local posRoots = {}
+            for _, v in solutions do
+                if v > 0 then
+                    table.insert(posRoots, v)
+                end
+            end
+            if posRoots[1] then
+                local t = posRoots[1]
+                local d = (h + p*t)/t
+                local e = (j + q*t - l*t*t)/t
+                local f = (k + r*t)/t
+                return origin + Vector3.new(d, e, f)
+            end
+        elseif gravity == 0 then
+            local t = (disp.Magnitude / projectileSpeed)
+            local d = (h + p*t)/t
+            local e = (j + q*t - l*t*t)/t
+            local f = (k + r*t)/t
+            return origin + Vector3.new(d, e, f)
+        end
+    end
+}
+
+local function entityMouse(options)
+    options = options or {}
+    local mouseLocation = options.MouseOrigin or getMousePosition()
+    local sortingTable = {}
+
+    if not entitylib.isAlive then return nil end
+
+    for _, v in entitylib.List do
+        if not options.Players and v.Player then continue end
+        if not options.NPCs and v.NPC then continue end
+        if not v.Targetable then continue end
+
+        local targetPart = v[options.Part or 'RootPart']
+        if not targetPart then continue end
+
+        local position, vis = gameCamera:WorldToViewportPoint(targetPart.Position)
+        if not vis then continue end
+
+        local mag = (mouseLocation - Vector2.new(position.x, position.y)).Magnitude
+        if mag > (options.Range or 1000) then continue end
+
+        if entitylib.isVulnerable(v) then
+            table.insert(sortingTable, {
+                Entity = v,
+                Magnitude = mag,
+                Position = position
+            })
+        end
+    end
+
+    table.sort(sortingTable, options.Sort or function(a, b)
+        return a.Magnitude < b.Magnitude
+    end)
+
+    for _, v in sortingTable do
+        if options.Wallcheck then
+            if entitylib.Wallcheck(options.Origin or entitylib.character.HumanoidRootPart.Position, v.Entity[options.Part or 'RootPart'].Position, options.Wallcheck) then
+                continue
+            end
+        end
+        table.clear(options)
+        table.clear(sortingTable)
+        return v.Entity
+    end
+
+    table.clear(sortingTable)
+    table.clear(options)
+    return nil
 end
 
 local knit = nil
 local bedwars = {}
 
-local begForBedwars = function()
-local attempts = 0
-while attempts < 100 do
-attempts = attempts + 1
-local success, knitModule = pcall(function()
-return debug.getupvalue(require(localCuck.PlayerScripts.TS.knit).setup, 9)
-end)
-if success and knitModule then
-local startAttempts = 0
-while not debug.getupvalue(knitModule.Start, 1) and startAttempts < 50 do
-startAttempts = startAttempts + 1
-task.wait(0.1)
-end
-if debug.getupvalue(knitModule.Start, 1) then
-return knitModule
-end
-end
-task.wait(0.1)
-end
-return nil
-end
-
-local armBedwars = function()
-knit = begForBedwars()
-if not knit then return false end
-
-local success = pcall(function()
-bedwars.ProjectileController = knit.Controllers.ProjectileController
-bedwars.BowConstantsTable = debug.getupvalue(knit.Controllers.ProjectileController.enableBeam, 8)
-
-pcall(function()
-local projectileMetaFunc = debug.getupvalue(knit.Controllers.ProjectileController.launchProjectileWithValues, 2)
-if projectileMetaFunc then
-bedwars.ProjectileMeta = debug.getupvalue(projectileMetaFunc, 1)
-end
-end)
-return true
-end)
-return success
+local function waitForBedwars()
+    local attempts = 0
+    while attempts < 100 do
+        attempts = attempts + 1
+        local success, knitModule = pcall(function()
+            return debug.getupvalue(require(lplr.PlayerScripts.TS.knit).setup, 9)
+        end)
+        if success and knitModule then
+            local startAttempts = 0
+            while not debug.getupvalue(knitModule.Start, 1) and startAttempts < 50 do
+                startAttempts = startAttempts + 1
+                task.wait(0.1)
+            end
+            if debug.getupvalue(knitModule.Start, 1) then
+                return knitModule
+            end
+        end
+        task.wait(0.1)
+    end
+    return nil
 end
 
-local predictCopeStrafing = function(targetPlayer, targetPart, projSpeed, gravity, origin)
-if not targetPlayer or not targetPlayer.Character or not targetPart then
-return targetPart and targetPart.Position or Vector3.zero
+local function setupBedwars()
+    knit = waitForBedwars()
+    if not knit then return false end
+
+    local success = pcall(function()
+        bedwars.ProjectileController = knit.Controllers.ProjectileController
+        bedwars.BowConstantsTable = debug.getupvalue(knit.Controllers.ProjectileController.enableBeam, 8)
+
+        pcall(function()
+            local projectileMetaFunc = debug.getupvalue(knit.Controllers.ProjectileController.launchProjectileWithValues, 2)
+            if projectileMetaFunc then
+                bedwars.ProjectileMeta = debug.getupvalue(projectileMetaFunc, 1)
+            end
+        end)
+        return true
+    end)
+    return success
 end
 
-local currentPos = targetPart.Position
-local currentVel = targetPart.Velocity
-local distance = (currentPos - origin).Magnitude
+local function predictStrafingMovement(targetPlayer, targetPart, projSpeed, gravity, origin)
+    if not targetPlayer or not targetPlayer.Character or not targetPart then
+        return targetPart and targetPart.Position or Vector3.zero
+    end
 
-local baseTimeToTarget = distance / projSpeed
-local velocityMagnitude = Vector3.new(currentVel.X, 0, currentVel.Z).Magnitude
-local verticalVel = currentVel.Y
+    local currentPos = targetPart.Position
+    local currentVel = targetPart.Velocity
+    local distance = (currentPos - origin).Magnitude
 
-local timeMultiplier = 1.0
-if distance > 80 then timeMultiplier = 0.95
-elseif distance > 50 then timeMultiplier = 0.98
-elseif distance < 20 then timeMultiplier = 1.08
+    local baseTimeToTarget = distance / projSpeed
+    local velocityMagnitude = Vector3.new(currentVel.X, 0, currentVel.Z).Magnitude
+    local verticalVel = currentVel.Y
+
+    local timeMultiplier = 1.0
+    if distance > 80 then timeMultiplier = 0.95
+    elseif distance > 50 then timeMultiplier = 0.98
+    elseif distance < 20 then timeMultiplier = 1.08
+    end
+
+    local timeToTarget = baseTimeToTarget * timeMultiplier
+
+    local horizontalPredictionStrength = 0.80
+    if distance > 70 then horizontalPredictionStrength = 0.70
+    elseif distance > 40 then horizontalPredictionStrength = 0.75
+    elseif distance < 25 then horizontalPredictionStrength = 0.88
+    end
+
+    local horizontalVel = Vector3.new(currentVel.X, 0, currentVel.Z)
+    local predictedHorizontal = horizontalVel * timeToTarget * horizontalPredictionStrength
+
+    local verticalPrediction = 0
+    local isJumping = verticalVel > 10
+    local isFalling = verticalVel < -15
+    local isPeaking = math.abs(verticalVel) < 3 and verticalVel < 1
+
+    if isFalling then
+        verticalPrediction = verticalVel * timeToTarget * 0.32
+    elseif isJumping then
+        verticalPrediction = verticalVel * timeToTarget * 0.28
+    elseif isPeaking then
+        verticalPrediction = -2 * timeToTarget
+    else
+        verticalPrediction = verticalVel * timeToTarget * 0.25
+    end
+
+    return currentPos + predictedHorizontal + Vector3.new(0, verticalPrediction, 0)
 end
 
-local timeToTarget = baseTimeToTarget * timeMultiplier
-
-local horizontalPredictionStrength = 0.80
-if distance > 70 then horizontalPredictionStrength = 0.70
-elseif distance > 40 then horizontalPredictionStrength = 0.75
-elseif distance < 25 then horizontalPredictionStrength = 0.88
+local function smoothAim(currentCFrame, targetPosition, distance)
+    local smoothnessFactor = 0.85
+    if distance > 70 then smoothnessFactor = 0.75
+    elseif distance > 40 then smoothnessFactor = 0.80
+    elseif distance < 20 then smoothnessFactor = 0.92
+    end
+    return currentCFrame:Lerp(CFrame.new(currentCFrame.Position, targetPosition), smoothnessFactor)
 end
 
-local horizontalVel = Vector3.new(currentVel.X, 0, currentVel.Z)
-local predictedHorizontal = horizontalVel * timeToTarget * horizontalPredictionStrength
+local oldCalculateImportantLaunchValues = nil
+local projectileAimbotEnabled = false
 
-local verticalPrediction = 0
-local isJumping = verticalVel > 10
-local isFalling = verticalVel < -15
-local isPeaking = math.abs(verticalVel) < 3 and verticalVel < 1
+local function enableProjectileAimbot()
+    if projectileAimbotEnabled or not bedwars.ProjectileController then return false end
 
-if isFalling then
-verticalPrediction = verticalVel * timeToTarget * 0.32
-elseif isJumping then
-verticalPrediction = verticalVel * timeToTarget * 0.28
-elseif isPeaking then
-verticalPrediction = -2 * timeToTarget
-else
-verticalPrediction = verticalVel * timeToTarget * 0.25
+    local success = pcall(function()
+        if not oldCalculateImportantLaunchValues then
+            oldCalculateImportantLaunchValues = bedwars.ProjectileController.calculateImportantLaunchValues
+        end
+
+        bedwars.ProjectileController.calculateImportantLaunchValues = function(...)
+            local self, projmeta, worldmeta, origin, shootpos = ...
+
+            local rayCheck = RaycastParams.new()
+            rayCheck.FilterType = Enum.RaycastFilterType.Include
+            rayCheck.FilterDescendantsInstances = {pit:FindFirstChild('Map') or pit}
+
+            local projName = projmeta.projectile:lower()
+            for _, name in ipairs(cfg.BlacklistedProjectiles) do
+                if projName == name:lower() then
+                    return oldCalculateImportantLaunchValues(...)
+                end
+            end
+
+            local plr = entityMouse({
+                Part = cfg.TargetPart,
+                Range = cfg.FOV,
+                Players = cfg.TargetPlayers,
+                NPCs = cfg.TargetNPCs,
+                Wallcheck = cfg.ShootThroughWalls and nil or rayCheck,
+                Origin = entitylib.isAlive and (shootpos or entitylib.character.RootPart.Position) or Vector3.zero
+            })
+
+            if plr and plr.Character and plr[cfg.TargetPart] then
+                local pos = shootpos or (self.getLaunchPosition and self:getLaunchPosition(origin) or origin)
+                if not pos then
+                    return oldCalculateImportantLaunchValues(...)
+                end
+
+                if (not cfg.IncludeOtherProjectiles) and not projmeta.projectile:find('arrow') then
+                    return oldCalculateImportantLaunchValues(...)
+                end
+
+                local meta = projmeta:getProjectileMeta() or {}
+                local lifetime = (worldmeta and meta.predictionLifetimeSec or meta.lifetimeSec or 3)
+                local gravity = (meta.gravitationalAcceleration or 196.2) * projmeta.gravityMultiplier
+                local projSpeed = (meta.launchVelocity or 100)
+                local offsetpos = pos + (projmeta.projectile == 'owl_projectile' and Vector3.zero or projmeta.fromPositionOffset)
+
+                local playerGravity = pit.Gravity
+                local balloons = plr.Character and plr.Character:GetAttribute('InflatedBalloons')
+                if balloons and balloons > 0 then
+                    playerGravity = pit.Gravity * math.max(1 - (balloons * 0.05), 0.7)
+                end
+                if plr.Player and plr.Player:GetAttribute('IsOwlTarget') then
+                    for _, owl in collectionService:GetTagged('Owl') do
+                        if owl:GetAttribute('Target') == plr.Player.UserId and owl:GetAttribute('Status') == 2 then
+                            playerGravity = 0
+                            break
+                        end
+                    end
+                end
+
+                local rawLook = CFrame.new(offsetpos, plr[cfg.TargetPart].Position)
+                local distance = (plr[cfg.TargetPart].Position - offsetpos).Magnitude
+                local predictedPosition = predictStrafingMovement(
+                    plr.Player,
+                    plr[cfg.TargetPart],
+                    projSpeed,
+                    gravity,
+                    offsetpos
+                )
+                local newlook = smoothAim(rawLook, predictedPosition, distance)
+
+                if projmeta.projectile ~= 'owl_projectile' then
+                    newlook = newlook * CFrame.new(
+                        bedwars.BowConstantsTable.RelX or 0,
+                        bedwars.BowConstantsTable.RelY or 0,
+                        bedwars.BowConstantsTable.RelZ or 0
+                    )
+                end
+
+                local targetVelocity = projmeta.projectile == 'telepearl' and Vector3.zero or plr[cfg.TargetPart].Velocity
+
+                local calc = prediction.SolveTrajectory(
+                    newlook.p,
+                    projSpeed,
+                    gravity,
+                    predictedPosition,
+                    targetVelocity,
+                    playerGravity,
+                    plr.HipHeight,
+                    plr.Jumping and 50 or nil,
+                    rayCheck
+                )
+
+                if calc then
+                    local finalDirection = (calc - newlook.p).Unit
+                    local angleFromHorizontal = math.acos(math.clamp(finalDirection:Dot(Vector3.new(0, 1, 0)), -1, 1))
+                    local minAngle = math.rad(1)
+                    local maxAngle = math.rad(179)
+                    if angleFromHorizontal > minAngle and angleFromHorizontal < maxAngle then
+                        return {
+                            initialVelocity = finalDirection * projSpeed,
+                            positionFrom = offsetpos,
+                            deltaT = lifetime,
+                            gravitationalAcceleration = gravity,
+                            drawDurationSeconds = 5
+                        }
+                    end
+                end
+            end
+
+            return oldCalculateImportantLaunchValues(...)
+        end
+
+        projectileAimbotEnabled = true
+    end)
+    return success
 end
 
-return currentPos + predictedHorizontal + Vector3.new(0, verticalPrediction, 0)
+local function disableProjectileAimbot()
+    if not projectileAimbotEnabled or not bedwars.ProjectileController then return false end
+    local success = pcall(function()
+        if oldCalculateImportantLaunchValues then
+            bedwars.ProjectileController.calculateImportantLaunchValues = oldCalculateImportantLaunchValues
+            oldCalculateImportantLaunchValues = nil
+            projectileAimbotEnabled = false
+        end
+    end)
+    return success
 end
 
-local softenAim = function(currentCFrame, targetPosition, distance)
-local smoothnessFactor = 0.85
-if distance > 70 then smoothnessFactor = 0.75
-elseif distance > 40 then smoothnessFactor = 0.80
-elseif distance < 20 then smoothnessFactor = 0.92
-end
-return currentCFrame:Lerp(CFrame.new(currentCFrame.Position, targetPosition), smoothnessFactor)
-end
+local initialized = false
 
-local oldCalc = nil
-local aimPillEnabled = false
+local function initialize()
+    if initialized then return end
 
-local darkConfigRaw = {
-[1] = 1001,
-[2] = 1600,
-[3] = "RootPart",
-[4] = 1,
-[5] = 0,
-[6] = 0,
-[7] = 1,
-[8] = {"telepearl", "telepearls"},
-[9] = 1001,
-[10] = "Backquote"
-}
+    repeat task.wait() until game:IsLoaded()
+    if not setupBedwars() then
+        warn("ProjectileAimbot: BedWars not found or failed to load.")
+        return
+    end
 
-local function decodeSettings(raw)
-return {
-Enabled = raw[1] - 1000 == 1,
-FOV = raw[2] - 1000,
-TargetPart = raw[3],
-TargetPlayers = raw[4] == 1,
-TargetNPCs = raw[5] == 1,
-ShootThroughWalls = raw[6] == 1,
-IncludeOtherProjectiles = raw[7] == 1,
-BlacklistedProjectiles = raw[8],
-EnableToggleKey = raw[9] - 1000 == 1,
-ToggleKey = raw[10]
-}
-end
+    entitylib.start()
+    addConnection({Disconnect = function() entitylib.stop() end})
 
-local Settings = decodeSettings(darkConfigRaw)
+    if cfg.Enabled then
+        enableProjectileAimbot()
+    end
 
-local activateAimPill = function()
-if aimPillEnabled or not bedwars.ProjectileController then return false end
+    if cfg.EnableToggleKey and cfg.ToggleKey then
+        local toggleKeyCode = Enum.KeyCode[cfg.ToggleKey]
+        if toggleKeyCode then
+            local toggleConnection = pain.InputBegan:Connect(function(input, gameProcessed)
+                if gameProcessed then return end
+                if input.KeyCode == toggleKeyCode then
+                    if projectileAimbotEnabled then
+                        disableProjectileAimbot()
+                    else
+                        enableProjectileAimbot()
+                    end
+                end
+            end)
+            addConnection(toggleConnection)
+        else
+            warn("ProjectileAimbot: Invalid toggle key '" .. tostring(cfg.ToggleKey) .. "'. Check spelling.")
+        end
+    end
 
-local success = pcall(function()
-if not oldCalc then
-oldCalc = bedwars.ProjectileController.calculateImportantLaunchValues
+    initialized = true
+    print("ProjectileAimbot standalone loaded. Press " .. (cfg.ToggleKey or "NONE") .. " to toggle.")
 end
 
-bedwars.ProjectileController.calculateImportantLaunchValues = function(...)
-local self, projmeta, worldmeta, origin, shootpos = ...
-
-local rayCheck = RaycastParams.new()
-rayCheck.FilterType = Enum.RaycastFilterType.Include
-rayCheck.FilterDescendantsInstances = {workspace:FindFirstChild('Map') or workspace}
-
-local projName = projmeta.projectile:lower()
-for _, name in ipairs(Settings.BlacklistedProjectiles) do
-if projName == name:lower() then
-return oldCalc(...)
-end
-end
-
-local mogger = seekMogger({
-Part = Settings.TargetPart,
-Range = Settings.FOV,
-Players = Settings.TargetPlayers,
-NPCs = Settings.TargetNPCs,
-Wallcheck = Settings.ShootThroughWalls and nil or rayCheck,
-Origin = pillLib.isAlive and (shootpos or pillLib.character.RootPart.Position) or Vector3.zero
-})
-
-if mogger and mogger.Character and mogger[Settings.TargetPart] then
-local pos = shootpos or (self.getLaunchPosition and self:getLaunchPosition(origin) or origin)
-if not pos then
-return oldCalc(...)
-end
-
-if (not Settings.IncludeOtherProjectiles) and not projmeta.projectile:find('arrow') then
-return oldCalc(...)
-end
-
-local meta = projmeta:getProjectileMeta() or {}
-local lifetime = (worldmeta and meta.predictionLifetimeSec or meta.lifetimeSec or 3)
-local gravity = (meta.gravitationalAcceleration or 196.2) * projmeta.gravityMultiplier
-local projSpeed = (meta.launchVelocity or 100)
-local offsetpos = pos + (projmeta.projectile == 'owl_projectile' and Vector3.zero or projmeta.fromPositionOffset)
-
-local playerGravity = workspace.Gravity
-local balloons = mogger.Character and mogger.Character:GetAttribute('InflatedBalloons')
-if balloons and balloons > 0 then
-playerGravity = workspace.Gravity * math.max(1 - (balloons * 0.05), 0.7)
-end
-if mogger.Player and mogger.Player:GetAttribute('IsOwlTarget') then
-for _, owl in taggyCope:GetTagged('Owl') do
-if owl:GetAttribute('Target') == mogger.Player.UserId and owl:GetAttribute('Status') == 2 then
-playerGravity = 0
-break
-end
-end
-end
-
-local rawLook = CFrame.new(offsetpos, mogger[Settings.TargetPart].Position)
-local distance = (mogger[Settings.TargetPart].Position - offsetpos).Magnitude
-local predictedPosition = predictCopeStrafing(
-mogger.Player,
-mogger[Settings.TargetPart],
-projSpeed,
-gravity,
-offsetpos
-)
-local newlook = softenAim(rawLook, predictedPosition, distance)
-
-if projmeta.projectile ~= 'owl_projectile' then
-newlook = newlook * CFrame.new(
-bedwars.BowConstantsTable.RelX or 0,
-bedwars.BowConstantsTable.RelY or 0,
-bedwars.BowConstantsTable.RelZ or 0
-)
-end
-
-local targetVelocity = projmeta.projectile == 'telepearl' and Vector3.zero or mogger[Settings.TargetPart].Velocity
-
-local calc = futureSight.solveCopePath(
-newlook.p,
-projSpeed,
-gravity,
-predictedPosition,
-targetVelocity,
-playerGravity,
-mogger.HipHeight,
-mogger.Jumping and 50 or nil,
-rayCheck
-)
-
-if calc then
-local finalDirection = (calc - newlook.p).Unit
-local angleFromHorizontal = math.acos(math.clamp(finalDirection:Dot(Vector3.new(0, 1, 0)), -1, 1))
-local minAngle = math.rad(1)
-local maxAngle = math.rad(179)
-if angleFromHorizontal > minAngle and angleFromHorizontal < maxAngle then
-return {
-initialVelocity = finalDirection * projSpeed,
-positionFrom = offsetpos,
-deltaT = lifetime,
-gravitationalAcceleration = gravity,
-drawDurationSeconds = 5
-}
-end
-end
-end
-
-return oldCalc(...)
-end
-
-aimPillEnabled = true
-end)
-return success
-end
-
-local deactivateAimPill = function()
-if not aimPillEnabled or not bedwars.ProjectileController then return false end
-local success = pcall(function()
-if oldCalc then
-bedwars.ProjectileController.calculateImportantLaunchValues = oldCalc
-oldCalc = nil
-aimPillEnabled = false
-end
-end)
-return success
-end
-
-local doomStarted = false
-
-local startDoom = function()
-if doomStarted then return end
-
-repeat task.wait() until game:IsLoaded()
-if not armBedwars() then
-warn("ProjectileAimbot: BedWars not found or failed to load.")
-return
-end
-
-pillLib.beginDoom()
-addToRope({Disconnect = function() pillLib.haltDoom() end})
-
-if Settings.Enabled then
-activateAimPill()
-end
-
-if Settings.EnableToggleKey and Settings.ToggleKey then
-local toggleKeyCode = Enum.KeyCode[Settings.ToggleKey]
-if toggleKeyCode then
-local toggleConnection = doomInput.InputBegan:Connect(function(input, gameProcessed)
-if gameProcessed then return end
-if input.KeyCode == toggleKeyCode then
-if aimPillEnabled then
-deactivateAimPill()
-else
-activateAimPill()
-end
-end
-end)
-addToRope(toggleConnection)
-else
-warn("ProjectileAimbot: Invalid toggle key '" .. tostring(Settings.ToggleKey) .. "'. Check spelling.")
-end
-end
-
-doomStarted = true
-print("ProjectileAimbot standalone loaded. Press " .. (Settings.ToggleKey or "NONE") .. " to toggle.")
-end
-
-local ancientCopium = getgenv().ProjectileAimbotInstances
-if ancientCopium then
-for _, f in pairs(ancientCopium) do
-pcall(f)
-end
+local oldInstances = getgenv().ProjectileAimbotInstances
+if oldInstances then
+    for _, f in pairs(oldInstances) do
+        pcall(f)
+    end
 end
 getgenv().ProjectileAimbotInstances = {}
 
-local function finalCope()
-sweepCope()
-if deactivateAimPill then deactivateAimPill() end
-if pillLib.Running then pillLib.haltDoom() end
+local function fullCleanup()
+    cleanup()
+    if disableProjectileAimbot then disableProjectileAimbot() end
+    if entitylib.Running then entitylib.stop() end
 end
-table.insert(getgenv().ProjectileAimbotInstances, finalCope)
+table.insert(getgenv().ProjectileAimbotInstances, fullCleanup)
 
 local scriptConnection
 scriptConnection = game.DescendantRemoving:Connect(function(descendant)
-if descendant == script then
-finalCope()
-if scriptConnection then scriptConnection:Disconnect() end
-end
+    if descendant == script then
+        fullCleanup()
+        if scriptConnection then scriptConnection:Disconnect() end
+    end
 end)
 
-startDoom()
+initialize()
